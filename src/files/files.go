@@ -11,17 +11,19 @@ import (
 
 var (
 	ErrRecursionLimitReached = errors.New("reached maximum recursion depth")
+	ErrDirectoryListFailed   = errors.New("failed reading directory contents")
 
+	//nolint:gochecknoglobals // Allow configuration of recursion depth limit
 	RecurseLimit = 128
 )
 
 type FilterFn func(string) bool
 
-func FindRecursive(ctx context.Context, directories []string, filters ...FilterFn) ([]string, error) {
-	return findRecursiveImpl(ctx, 0, directories, filters...)
+func FindRecursive(ctx context.Context, directories []string) ([]string, error) {
+	return findRecursiveImpl(ctx, 0, directories)
 }
 
-func findRecursiveImpl(ctx context.Context, depth int, directories []string, filters ...FilterFn) ([]string, error) {
+func findRecursiveImpl(ctx context.Context, depth int, directories []string) ([]string, error) {
 	logger := log.FromContext(ctx)
 
 	if len(directories) == 0 {
@@ -30,15 +32,17 @@ func findRecursiveImpl(ctx context.Context, depth int, directories []string, fil
 
 	if depth >= RecurseLimit {
 		logger.WithField("depth", depth).Debug("hit recusion limit")
+
 		return nil, ErrRecursionLimitReached
 	}
 
 	matches := []string{}
 	subdirs := []string{}
+
 	for _, directory := range directories {
 		subpaths, err := os.ReadDir(directory)
 		if err != nil {
-			return nil, err
+			return nil, ErrDirectoryListFailed
 		}
 
 		for _, subpath := range subpaths {
@@ -49,31 +53,23 @@ func findRecursiveImpl(ctx context.Context, depth int, directories []string, fil
 					"depth":  depth,
 					"subdir": path,
 				}).Debug("found new directory")
+
 				subdirs = append(subdirs, path)
 			} else {
 				logger.WithFields(log.Fields{
 					"depth":    depth,
 					"filepath": path,
 				}).Debug("found new file")
+
 				matches = append(matches, path)
 			}
 		}
 	}
 
-	recursed, err := findRecursiveImpl(ctx, depth+1, subdirs, filters...)
+	recursed, err := findRecursiveImpl(ctx, depth+1, subdirs)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, file := range recursed {
-		for _, filter := range filters {
-			if filter(file) {
-				matches = append(matches, file)
-				break
-			}
-		}
-	}
-
-	return matches, nil
-
+	return append(matches, recursed...), nil
 }

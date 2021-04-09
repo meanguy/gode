@@ -39,6 +39,7 @@ func parseArgs() args {
 
 	flag.Func("filetype", "specify filetype to apply modifications to", func(s string) error {
 		opts.Filetypes = append(opts.Filetypes, s)
+
 		return nil
 	})
 
@@ -53,8 +54,8 @@ func parseArgs() args {
 		flag.Usage()
 		os.Exit(-1)
 	}
-	opts.SearchPaths = flag.Args()
 
+	opts.SearchPaths = flag.Args()
 	if len(opts.MatchPattern) == 0 || len(opts.ReplacePattern) == 0 {
 		flag.Usage()
 		os.Exit(-1)
@@ -63,6 +64,7 @@ func parseArgs() args {
 	return opts
 }
 
+//nolint:cyclop,funlen,gocognit // TODO: Need to refactor
 func main() {
 	logger := log.Log
 	ctx := log.NewContext(context.Background(), logger)
@@ -90,8 +92,10 @@ func main() {
 
 	searchDirectories := []string{}
 	searchFiles := []string{}
+
 	for _, path := range opts.SearchPaths {
 		stat, err := os.Stat(path)
+
 		switch {
 		case err != nil:
 			logger.Fatal(err.Error())
@@ -112,8 +116,9 @@ func main() {
 	}
 
 	matches := append([]string(nil), searchFiles...)
+
 	if opts.Recursive {
-		recursed, err := files.FindRecursive(ctx, searchDirectories, filters...)
+		recursed, err := files.FindRecursive(ctx, searchDirectories)
 		if err != nil {
 			logger.Fatal(err.Error())
 		}
@@ -123,9 +128,11 @@ func main() {
 
 	for _, match := range matches {
 		skip := true
+
 		for _, filter := range filters {
 			if filter(match) {
 				skip = false
+
 				break
 			}
 		}
@@ -140,10 +147,10 @@ func main() {
 		}
 
 		writer, err := os.OpenFile(match, os.O_RDWR, file.Mode().Perm())
-		defer writer.Close()
 		if err != nil {
 			logger.Fatal(err.Error())
 		}
+		defer writer.Close()
 
 		raw, err := ioutil.ReadAll(writer)
 		if err != nil {
@@ -155,6 +162,7 @@ func main() {
 			logger.Fatal(err.Error())
 		} else if !matched {
 			logger.WithField("filepath", match).Debug("no pattern match")
+
 			continue
 		}
 
@@ -166,10 +174,10 @@ func main() {
 		switch {
 		case opts.WriteMode:
 			truncated, err := os.OpenFile(match, os.O_WRONLY|os.O_TRUNC, file.Mode().Perm())
-			defer truncated.Close()
 			if err != nil {
 				logger.Fatal(err.Error())
 			}
+			defer truncated.Close()
 
 			if _, err := fmt.Fprint(truncated, replaced); err != nil {
 				logger.WithField("filepath", match).Fatal(err.Error())
@@ -178,6 +186,7 @@ func main() {
 			dmp := diffmatchpatch.New()
 			diffs := dmp.DiffCleanupSemantic(
 				dmp.DiffCleanupEfficiency(dmp.DiffMain(original, replaced, true)))
+
 			if _, err := fmt.Fprint(os.Stdout, dmp.DiffPrettyText(diffs)); err != nil {
 				logger.Fatal(err.Error())
 			}
