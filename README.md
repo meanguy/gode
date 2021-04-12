@@ -69,8 +69,11 @@ func main() {
                 fmt.Fprintf(os.Stderr, "unknown error: %v", err)
         }
 }
+```
 
-# Update Go error checking to use Go 1.13 library features.
+### Update Go error checking to use Go 1.13 library features.
+
+```bash
 $ gode -m 'err (!?)={1,2} ((?!nil)[A-Za-z.]+)' -r '${1}errors.Is(err, ${2})' example.go
 package main
 
@@ -108,8 +111,11 @@ func main() {
                 fmt.Fprintf(os.Stderr, "unknown error: %v", err)
         }
 }
+```
 
-# Print a colored diff view instead.
+### Print a colored diff view instead.
+
+```bash
 $ gode -m 'err (!?)={1,2} ((?!nil)[A-Za-z.]+)' -r '${1}errors.Is(err, ${2})' -d example.go
 package main
 
@@ -147,8 +153,11 @@ func main() {
                 fmt.Fprintf(os.Stderr, "unknown error: %v", err)
         }
 }
+```
 
-# Write changes to the source file.
+### Write changes to the source file.
+
+```bash
 $ gode -m 'err (!?)={1,2} ((?!nil)[A-Za-z.]+)' -r '${1}errors.Is(err, ${2})' -w example.go
 
 $ cat example.go 
@@ -188,13 +197,22 @@ func main() {
                 fmt.Fprintf(os.Stderr, "unknown error: %v", err)
         }
 }
+```
 
-# Recursively apply modifications to any directory arguments.
+### Recursively apply modifications to any directory arguments.
+
+```bash
 $ gode -recursive -m 'err (!?)={1,2} ((?!nil)[A-Za-z.]+)' -r '${1}errors.Is(err, ${2})' -w .
+```
 
-# Filter out any files not matching a filetype -- useful with -recursive.
+### Filter out any files not matching a filetype -- useful with -recursive.
+
+```bash
 $ gode -filetype '.txt' -recursive -m 'err (!?)={1,2} ((?!nil)[A-Za-z.]+)' -r '${1}errors.Is(err, ${2})' -d .
+```
 
-# Only modify files matching a set of filetypes.
+### Only modify files matching a set of filetypes.
+
+```bash
 $ gode -filetype '.py' -filetype '.go' -recursive -m 'TODO:' -r 'TODO(XX):' -w ~/docs/dev/py ~/docs/dev/golang
 ```
